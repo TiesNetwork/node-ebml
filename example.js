@@ -7,7 +7,7 @@ decoder.on('data', function(chunk) {
     console.log(chunk);
 });
 
-fs.readFile('media/test.webm', function(err, data) {
+fs.readFile('ties-update.proto', function(err, data) {
     if (err)
         throw err;
     decoder.write(data);
