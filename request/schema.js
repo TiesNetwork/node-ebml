@@ -4,6 +4,12 @@ let _the_schema = {
         "type": "m",
         "description": ""
     },
+    "Test": {
+        "context": ["ModificationRequest"],
+        "tag": "86",
+        "type": "i",
+        "description": ""
+    },
     "Consistency": {
         "context": ["ModificationRequest"],
         "tag": "ee",

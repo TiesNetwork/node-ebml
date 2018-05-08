@@ -10,21 +10,69 @@ function initStack() {
     stack = [{}];
 }
 
-decoder.on('data', function(chunk) {
-    if(chunk[0] == 'start') {
-        var item = stack[stack.length - 1];
-        if(!item.children)
-            item.children = [];
+class Tag {
+    constructor(properties) {
+        for(let p in properties)
+            this[p] = properties[p];
+        Object.defineProperty(this, '__childrenMap', {enumerable: false, configurable: true, writable: true});
+    }
 
-        var item1 = chunk[1];
-        item.children.push(item1);
+    getChild(name) {
+        if(!this.children)
+            return;
+        if(typeof name === 'number')
+            return this.children[name];
+        let c = this.__childrenMap[name];
+        return c && c[0];
+    }
+
+    getChildren(name) {
+        if(!this.children)
+            return;
+        if(name)
+            return this.__childrenMap[name];
+        return this.children;
+    }
+}
+
+function addChild(item, item1) {
+    if(!item.children)
+        item.children = [];
+
+    if(!item.__childrenMap)
+        item.__childrenMap = {};
+    if(!item.__childrenMap[item1.name])
+        item.__childrenMap[item1.name] = [];
+    item.__childrenMap[item1.name].push(item1);
+
+    item.children.push(item1);
+}
+
+decoder.on('data', function(chunk) {
+    if(chunk[0] === 'start') {
+        let item = stack[stack.length - 1];
+
+        let data = chunk[1];
+        let item1 = new Tag({
+            name: data.name,
+            type: data.type
+        });
+
+        addChild(item, item1);
         stack.push(item1);
-    }else if(chunk[0] == 'tag') {
-        var item = stack[stack.length - 1];
-        if(!item.children)
-            item.children = [];
-        stack[stack.length - 1].children.push(chunk[1]);
-    }else{
+    }else if(chunk[0] === 'tag') {
+        let item = stack[stack.length - 1];
+
+        let data = chunk[1];
+        let item1 = new Tag({
+            name: data.name,
+            type: data.type,
+            data: data.data,
+            value: data.value
+        });
+
+        addChild(item, item1);
+    }else{ //chunk[0] === 'end'
         stack.pop();
     }
 });

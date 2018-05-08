@@ -3,7 +3,7 @@ var util = require('util');
 
 var codec = require('./request/codec');
 
-fs.readFile('ties-insert-new.proto', function(err, data) {
+fs.readFile('ties-nums.proto', function(err, data) {
     if (err)
         throw err;
     var req = codec.decode(data);
