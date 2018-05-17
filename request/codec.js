@@ -1,7 +1,7 @@
 let ebml = require('../lib/ebml/index.js');
 let schema = require('./schema.js');
 let etu = require('ethereumjs-util');
-var createKeccakHash = require('keccak');
+const createKeccakHash = require('keccak');
 
 let decoder = new ebml.Decoder(null, schema);
 let encoder = new ebml.Encoder(null, schema);
@@ -13,9 +13,15 @@ function initStack() {
 }
 
 class Tag {
-    constructor(properties) {
-        for(let p in properties)
-            this[p] = properties[p];
+    constructor(propertiesOrName) {
+        if(typeof propertiesOrName === 'string') {
+            this.name = propertiesOrName;
+        } else {
+            for (let p in propertiesOrName)
+                this[p] = propertiesOrName[p];
+        }
+        if(!this.type)
+            this.type = schema.findTagByName(this.name).type;
         Object.defineProperty(this, '__childrenMap', {enumerable: false, configurable: true, writable: true});
     }
 
@@ -35,19 +41,20 @@ class Tag {
             return this.__childrenMap[name];
         return this.children;
     }
-}
 
-function addChild(item, item1) {
-    if(!item.children)
-        item.children = [];
+    addChild(tag) {
+        let item = this, item1 = tag;
+        if(!item.children)
+            item.children = [];
 
-    if(!item.__childrenMap)
-        item.__childrenMap = {};
-    if(!item.__childrenMap[item1.name])
-        item.__childrenMap[item1.name] = [];
-    item.__childrenMap[item1.name].push(item1);
+        if(!item.__childrenMap)
+            item.__childrenMap = {};
+        if(!item.__childrenMap[item1.name])
+            item.__childrenMap[item1.name] = [];
+        item.__childrenMap[item1.name].push(item1);
 
-    item.children.push(item1);
+        item.children.push(item1);
+    }
 }
 
 decoder.on('data', function(chunk) {
@@ -60,7 +67,7 @@ decoder.on('data', function(chunk) {
             type: data.type
         });
 
-        addChild(item, item1);
+        item.addChild(item1);
         stack.push(item1);
     }else if(chunk[0] === 'tag') {
         let item = stack[stack.length - 1];
@@ -73,7 +80,7 @@ decoder.on('data', function(chunk) {
             value: data.value
         });
 
-        addChild(item, item1);
+        item.addChild(item1);
     }else{ //chunk[0] === 'end'
         stack.pop();
     }
@@ -113,7 +120,7 @@ function encode(raw, pk) {
 function check(obj, myAddress) {
     switch (obj.name) {
         case 'ModificationRequest':
-            checkModificationRequest(obj);
+            checkModificationRequest(obj, myAddress);
             break;
     }
 }
@@ -128,9 +135,9 @@ function checkModificationRequest(obj, myAddress){
 function checkEntry(entry, myAddress) {
     let header = entry.getChild('EntryHeader');
     let addr = getSigner(header);
-    let signer = obj.getChild('Signer').data;
+    let signer = header.getChild('Signer').data;
     if(Buffer.compare(addr, signer) != 0)
-        throw new Error('Entry signature check is failed! Sig: ' + signature.toString('hex').substr(0, 20) + '...');
+        throw new Error('Entry signature check is failed! Sig: ' + header.getChild('Signature').data.toString('hex').substr(0, 20) + '...');
 
     checkFields(entry.getChild('FieldList'), header.getChild('EntryFldHash'));
     checkCheques(entry, myAddress);
@@ -143,12 +150,16 @@ function getSigner(obj) {
     for(let i=0; i<children.length; ++i){
         let child = children[i];
         if(child.name != 'Signature')
-            computeHashOnData(obj, keccak);
+            computeHashOnData(child, keccak);
     }
 
     let hash = keccak.digest();
 
-    let pubk = etu.ecrecover(hash, signature[64], signature.slice(0, 32), signature.slice(32, 64));
+    let v = signature[64];
+    if(v > 28)
+        v -= 10; //ethereumjs-util supports only v in [27, 28] (EIP-155)
+    v = v > 28 ? v - 10 : v;
+    let pubk = etu.ecrecover(hash, v, signature.slice(0, 32), signature.slice(32, 64));
     let addr = etu.pubToAddress(pubk);
     return addr;
 }
@@ -160,6 +171,9 @@ function computeHashOnData(obj, hash) {
             computeHashOnData(children[i], hash);
     }else{
         hash.update(obj.data);
+        if(!hash.dataarr)
+            hash.dataarr = [];
+        hash.dataarr.push(obj.data);
     }
 }
 
@@ -181,8 +195,8 @@ function checkFields(list, hash){
         }
     }
 
-    let hash = hash.getData();
-    if(!Buffer.compare(hash, keccakAllFields.digest()))
+    hash = hash.data;
+    if(Buffer.compare(hash, keccakAllFields.digest()) != 0)
         throw new Error('Fields hash does not match! Hash: ' + hash.toString('hex'));
 }
 
@@ -202,5 +216,6 @@ function checkCheques(entry, myAddress) {
 
 module.exports = {
     decode: decode,
-    encode: encode
+    encode: encode,
+    Tag: Tag
 };

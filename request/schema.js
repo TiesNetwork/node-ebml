@@ -22,6 +22,12 @@ let _the_schema = {
         "type": "b",
         "description": ""
     },
+    "Signer": {
+        "context": ["^ModificationRequest"],
+        "tag": "fc",
+        "type": "b",
+        "description": ""
+    },
     "Entry": {
         "context": ["ModificationRequest"],
         "tag": "e1",
