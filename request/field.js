@@ -30,7 +30,7 @@ function _encodeValue(type, value) {
             return this.value ? Buffer.alloc(0) : Buffer.alloc(1, 1, 'binary');
         case 'Integer':
         case 'Long':
-            return encodeInteger(value);
+            return tools.encodeInteger(value);
         case 'Float':
         {
             let buf = Buffer.allocUnsafe(4);
@@ -60,6 +60,7 @@ function _encodeValue(type, value) {
         case 'Binary':
             return Buffer.isBuffer(value) ? value : Buffer.from(value);
         case 'Time':
+            return encodeInteger(+value - tools.UNIX_EPOCH_DELAY);
         case 'Duration':
             return encodeInteger(+value);
         default:
@@ -89,17 +90,12 @@ function _decodeValue(type, buffer){
         case 'Binary':
             return buffer;
         case 'Time':
-            return new Date(tools.readSigned(buffer));
+            return new Date(tools.readSigned(buffer) + tools.UNIX_EPOCH_DELAY);
         case 'Duration':
             return tools.readSigned(buffer);
         default:
             throw new Error('Type ' + type + ' is unknown or not yet supported');
     }
-}
-
-function encodeInteger(value) {
-    let bn = new BN(value);
-    return bn.toBuffer();
 }
 
 class Field{

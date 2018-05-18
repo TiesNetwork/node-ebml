@@ -42,7 +42,18 @@ class Tag {
         return this.children;
     }
 
-    addChild(tag) {
+    addChild(tag, value) {
+        if(typeof tag === 'string') {
+            if(typeof value !== undefined) {
+                if(Buffer.isBuffer(value))
+                    tag = new Tag({name: tag, data: value});
+                else
+                    tag = new Tag({name: tag, value: value});
+            } else {
+                tag = new Tag(tag);
+            }
+        }
+
         let item = this, item1 = tag;
         if(!item.children)
             item.children = [];
@@ -54,6 +65,12 @@ class Tag {
         item.__childrenMap[item1.name].push(item1);
 
         item.children.push(item1);
+    }
+
+    ensureData() {
+        if(!this.data && this.type !== 'm') {
+            ebml.tools.writeDataToTag(this, this.value);
+        }
     }
 }
 
@@ -99,7 +116,7 @@ function decode(/*Buffer*/ data, myAddress) {
     return obj;
 }
 
-function encode(raw, pk) {
+function encode(raw) {
     function encode(node){
         let info = encoder._schema.findTagByName(node.name);
         if(info.type === 'm'){
@@ -168,13 +185,14 @@ function computeHashOnData(obj, hash) {
     if(obj.type == 'm') {
         let children = obj.getChildren();
         for(let i=0; i<children.length; ++i)
-            computeHashOnData(children[i], hash);
+            hash = computeHashOnData(children[i], hash);
     }else{
+        if(!hash)
+            hash = createKeccakHash('keccak256');
+        obj.ensureData();
         hash.update(obj.data);
-        if(!hash.dataarr)
-            hash.dataarr = [];
-        hash.dataarr.push(obj.data);
     }
+    return hash;
 }
 
 function checkFields(list, hash){
@@ -214,8 +232,17 @@ function checkCheques(entry, myAddress) {
     }
 }
 
+function sign(msgHash, pk) {
+    let buf = etu.secp256k1.sign(msgHash, pk);
+    if(buf[64] < 30)
+        buf[64] += 10; //ethereumjs-util supports only v in [27, 28] but we need [37, 38] (EIP-155)
+    return buf;
+}
+
 module.exports = {
     decode: decode,
     encode: encode,
-    Tag: Tag
+    Tag: Tag,
+    computeHashOnData: computeHashOnData,
+    sign: sign,
 };

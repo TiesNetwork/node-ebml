@@ -1,10 +1,16 @@
 const Field = require('./field');
 const createKeccakHash = require('keccak');
 const codec = require('./codec');
+const Tag = codec.Tag;
+const C = require('./constants');
+const etu = require('ethereumjs-util');
+
 
 class Record {
     constructor(tablespace, table) {
         this.fields = {};
+        this.prevVersion = 0;
+        this.prevHash = null;
         this.tablespace = tablespace;
         this.table = table;
     }
@@ -59,7 +65,37 @@ class Record {
             let f = field.toTag();
             fl.addChild(f);
         }
+    }
 
+    getEntry(pk) {
+        let entry = new Tag('Entry');
+        let entryHeader = new Tag('EntryHeader');
+        entry.addChild(entryHeader);
+
+        let fieldNames = this.getSortedFieldNames();
+        let fldhash = this.getFieldsHash(fieldNames);
+
+        entryHeader.addChild('Signer', etu.privateToAddress(pk));
+        entryHeader.addChild('EntryTablespaceName', this.tablespace);
+        entryHeader.addChild('EntryTableName', this.table);
+        entryHeader.addChild('EntryType', this.prevVersion ? C.EntryType.UPDATE : C.EntryType.INSERT);
+        entryHeader.addChild('EntryTimestamp', new Date());
+        entryHeader.addChild('EntryVersion', this.prevVersion + 1);
+        entryHeader.addChild('EntryFldHash', fldhash);
+        if(this.prevHash)
+            entryHeader.addChild('EntryOldHash', this.prevHash);
+        entryHeader.addChild('EntryNetwork', C.Network.ETHEREUM);
+
+        let hash = codec.computeHashOnData(entryHeader).digest();
+        let sig = codec.sign(hash, pk);
+        entryHeader.addChild('Signature', sig);
+
+        let fl = this.getFieldList(fieldNames);
+        entry.addChild(fl);
+
+        return entry;
     }
 
 }
+
+module.exports = Record;
