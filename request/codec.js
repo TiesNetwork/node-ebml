@@ -9,18 +9,18 @@ let stack;
 let encodedData;
 
 function initStack() {
-    stack = [{}];
+    stack = [new Tag()];
 }
 
 class Tag {
     constructor(propertiesOrName) {
         if(typeof propertiesOrName === 'string') {
             this.name = propertiesOrName;
-        } else {
+        } else if(propertiesOrName) {
             for (let p in propertiesOrName)
                 this[p] = propertiesOrName[p];
         }
-        if(!this.type)
+        if(!this.type && this.name)
             this.type = schema.findTagByName(this.name).type;
         Object.defineProperty(this, '__childrenMap', {enumerable: false, configurable: true, writable: true});
     }

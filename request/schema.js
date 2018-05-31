@@ -16,6 +16,12 @@ let _the_schema = {
         "type": "u",
         "description": ""
     },
+    "RequestId": {
+        "context": ["ModificationRequest"],
+        "tag": "ec",
+        "type": "u",
+        "description": "Request ID unique for a given connection"
+    },
     "Signature": {
         "context": ["^ModificationRequest"],
         "tag": "fe",

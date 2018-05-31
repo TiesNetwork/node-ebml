@@ -1,6 +1,6 @@
 module.exports = {
     Consistency: {
-        ONE: 0x81,
+        ONE: 0xFF,
         QUORUM: 0,
         ALL: 100,
     },

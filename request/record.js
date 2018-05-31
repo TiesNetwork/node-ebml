@@ -96,6 +96,15 @@ class Record {
         return entry;
     }
 
+    putFields(fields, types) {
+        for (let f in fields) {
+            let type = types[f];
+            if(!type)
+                throw new Error('No type for field ' + f);
+            this.putField(f, new Field(f, type, fields[f]));
+        }
+    }
+
 }
 
 module.exports = Record;

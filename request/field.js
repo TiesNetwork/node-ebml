@@ -26,27 +26,33 @@ Structure - объект с фиксированным набором элеме
 
 function _encodeValue(type, value) {
     switch(type){
-        case 'Boolean':
+        case 'boolean':
             return this.value ? Buffer.alloc(0) : Buffer.alloc(1, 1, 'binary');
-        case 'Integer':
-        case 'Long':
+        case 'integer':
+        case 'long':
             return tools.encodeInteger(value);
-        case 'Float':
+        case 'float':
         {
             let buf = Buffer.allocUnsafe(4);
             buf.writeFloatBE(value, 0);
             return buf;
         }
-        case 'Double':
+        case 'double':
         {
             let buf = Buffer.allocUnsafe(8);
             buf.writeDoubleBE(value, 0);
             return buf;
         }
-        case 'Decimal':
+        case 'decimal':
         {
             let bd = new BD.BigDecimal(value);
+
             let scale = bd.scale();
+            if(scale >= 0)
+                scale *= 2;
+            else
+                scale = -scale*2 + 1;
+
             let unscaled = bd.unscaledValue();
             let scaleBuf = tools.writeVint(scale);
             let unscaledBuf = unscaled.toByteArray();
@@ -55,14 +61,20 @@ function _encodeValue(type, value) {
             Buffer.copy(buf, scaleBuf.length, unscaledBuf, 0, unscaledBuf.length);
             return buf;
         }
-        case 'String':
+        case 'string':
             return Buffer.from(value);
-        case 'Binary':
+        case 'binary':
             return Buffer.isBuffer(value) ? value : Buffer.from(value);
-        case 'Time':
+        case 'time':
             return encodeInteger(+value - tools.UNIX_EPOCH_DELAY);
-        case 'Duration':
+        case 'duration':
             return encodeInteger(+value);
+        case 'uuid':
+            if(typeof(value) === 'string')
+                value = uuidParse.parse(value);
+            if(!Buffer.isBuffer(value))
+                throw new Error('Value is not a Buffer!');
+            return value;
         default:
             throw new Error('Type ' + type + ' is unknown or not yet supported');
     }
@@ -70,29 +82,36 @@ function _encodeValue(type, value) {
 
 function _decodeValue(type, buffer){
     switch(type){
-        case 'Boolean':
+        case 'boolean':
             return !!buffer[0];
-        case 'Integer':
-        case 'Long':
+        case 'integer':
+        case 'long':
             return tools.readSigned(buffer);
-        case 'Float':
-        case 'Double':
+        case 'float':
+        case 'double':
             return tools.readFloat(buffer);
-        case 'Decimal':
+        case 'decimal':
         {
             let scale = tools.readVint(buffer, 0);
+            let sgn = scale.value & 1;
+            let scale_val = (scale.value - sgn)/2;
+            if(sgn)
+                scale_val = -scale_val;
+
             let bi = new BD.BigInteger(buffer.slice(scale.length));
-            let bd = new BD.BigDecimal(bi, scale.value);
+            let bd = new BD.BigDecimal(bi, scale_val);
             return bd;
         }
-        case 'String':
+        case 'string':
             return Buffer.toString();
-        case 'Binary':
+        case 'binary':
             return buffer;
-        case 'Time':
+        case 'time':
             return new Date(tools.readSigned(buffer) + tools.UNIX_EPOCH_DELAY);
-        case 'Duration':
+        case 'duration':
             return tools.readSigned(buffer);
+        case 'uuid':
+            return uuidParse.unparse(buffer);
         default:
             throw new Error('Type ' + type + ' is unknown or not yet supported');
     }
@@ -101,7 +120,7 @@ function _decodeValue(type, buffer){
 class Field{
     constructor(name, type, values){
         this.name = name;
-        this.type = type;
+        this.type = type.toLowerCase();
         let vals = values || {};
         if(vals.binaryValue)
             this.setBinaryValue(vals.binaryValue);
