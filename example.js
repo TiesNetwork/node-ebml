@@ -7,7 +7,7 @@ var uuidv4 = require('uuid/v4');
 var bigdecimal = require("bigdecimal");
 var Record = require("./request/record");
 
-fs.readFile('ties-insert-new.proto', function(err, data) {
+fs.readFile('myreq.proto', async function(err, data) {
     if (err)
         throw err;
     //var req = codec.decode(data, new Buffer("fafe9c9e7845f446d091c12c74d44c61a0923c00", "hex"));
@@ -19,7 +19,7 @@ fs.readFile('ties-insert-new.proto', function(err, data) {
     let types = {
         Id: 'uuid',
         fBinary: 'binary',
-        fBoolen: 'boolean',
+        fBoolean: 'boolean',
         fDecimal: 'decimal',
         fDouble: 'double',
         fDuration: 'duration',
@@ -34,13 +34,13 @@ fs.readFile('ties-insert-new.proto', function(err, data) {
     record.putFields({
         Id: uuidv4(),
         fBinary: new Buffer(5),
-        fBoolen: true,
-        fDecimal: new bigdecimal.BigDecimal("123456.123456789012345678901234567890"),
+        fBoolean: true,
+        fDecimal: new bigdecimal.BigDecimal("-1"),
         fDouble: 158.234e200,
         fDuration: 1000,
         fFloat: -42803.234e-8,
         fInteger: 423424432,
-        fLong: -27837492837477482,
+        fLong: -278374928374,
         fString: "This is UTF-8 строка",
         fTime: new Date()
     }, types);
@@ -48,8 +48,10 @@ fs.readFile('ties-insert-new.proto', function(err, data) {
     //0xe0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e
     //0xAe65bAf610Bad3F0d71Aa3C3a8110c2d62cbEb19
 
-    let c = new Connection('ws://192.168.1.45:8080/websocket');
-    c.modify([record], Buffer.from('e0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e', 'hex'))
+    let c = new Connection('ws://192.168.1.44:8080/websocket');
+    await c.waitForConnection;
+
+    await c.modify([record], Buffer.from('e0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e', 'hex'));
 
     
 });

@@ -117,20 +117,21 @@ function decode(/*Buffer*/ data, myAddress) {
 }
 
 function encode(raw) {
-    function encode(node){
+    function encodeInner(node){
         let info = encoder._schema.findTagByName(node.name);
         if(info.type === 'm'){
             encoder.write(['start', node]);
             for(let i=0; i<node.children.length; ++i){
-                encode(node.children[i]);
+                encodeInner(node.children[i]);
             }
             encoder.write(['end', node]);
         }else{
+            node.ensureData();
             encoder.write(['tag', node]);
         }
     }
 
-    encode(raw);
+    encodeInner(raw);
     return encodedData;
 }
 
@@ -195,7 +196,7 @@ function computeHashOnData(obj, hash) {
     return hash;
 }
 
-function checkFields(list, hash){
+function computeFieldsHash(list) {
     let fields = list.getChildren('Field');
     if(!fields)
         return;
@@ -204,17 +205,30 @@ function checkFields(list, hash){
         let field = fields[i];
         let fldhash = field.getChild('FieldHash');
         if(fldhash){
+            fldhash.ensureData();
             keccakAllFields.update(fldhash.data);
         }else {
             let keccakField = createKeccakHash('keccak256');
-            keccakField.update(field.getChild('FieldName').data);
-            keccakField.update(field.getChild('FieldValue').data);
+
+            let name = field.getChild('FieldName');
+            name.ensureData();
+            let value = field.getChild('FieldValue');
+            field.ensureData();
+
+            keccakField.update(name.data);
+            keccakField.update(value.data);
             keccakAllFields.update(keccakField.digest());
         }
     }
 
+    return keccakAllFields.digest();
+}
+
+function checkFields(list, hash){
+    let computed = computeFieldsHash(list);
+
     hash = hash.data;
-    if(Buffer.compare(hash, keccakAllFields.digest()) != 0)
+    if(Buffer.compare(hash, computed) != 0)
         throw new Error('Fields hash does not match! Hash: ' + hash.toString('hex'));
 }
 
@@ -233,10 +247,11 @@ function checkCheques(entry, myAddress) {
 }
 
 function sign(msgHash, pk) {
-    let buf = etu.secp256k1.sign(msgHash, pk);
-    if(buf[64] < 30)
-        buf[64] += 10; //ethereumjs-util supports only v in [27, 28] but we need [37, 38] (EIP-155)
-    return buf;
+    let sig = etu.secp256k1.sign(msgHash, pk);
+    let sigBuf = Buffer.allocUnsafe(65);
+    sig.signature.copy(sigBuf, 0, 0, 64);
+    sigBuf[64] = sig.recovery + 37; //we need [37, 38] (EIP-155)
+    return sigBuf;
 }
 
 module.exports = {
@@ -244,5 +259,6 @@ module.exports = {
     encode: encode,
     Tag: Tag,
     computeHashOnData: computeHashOnData,
+    computeFieldsHash: computeFieldsHash,
     sign: sign,
 };

@@ -16,7 +16,7 @@ let _the_schema = {
         "type": "u",
         "description": ""
     },
-    "RequestId": {
+    "MessageId": {
         "context": ["ModificationRequest"],
         "tag": "ec",
         "type": "u",

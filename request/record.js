@@ -43,19 +43,6 @@ class Record {
         return Object.keys(this.fields).sort();
     }
 
-    getFieldsHash(fieldNames) {
-        if(!fieldNames)
-            fieldNames = this.getSortedFieldNames();
-        let keccak = createKeccakHash('keccak256');
-        for (let name of fieldNames){
-            let field = this.getField(name);
-            keccak.update(field.getBinaryName());
-            keccak.update(field.getHash());
-        }
-
-        return keccak.digest();
-    }
-
     getFieldList(fieldNames) {
         let fl = new codec.Tag('FieldList');
         if(!fieldNames)
@@ -65,6 +52,7 @@ class Record {
             let f = field.toTag();
             fl.addChild(f);
         }
+        return fl;
     }
 
     getEntry(pk) {
@@ -73,7 +61,8 @@ class Record {
         entry.addChild(entryHeader);
 
         let fieldNames = this.getSortedFieldNames();
-        let fldhash = this.getFieldsHash(fieldNames);
+        let fl = this.getFieldList(fieldNames);
+        let fldhash = codec.computeFieldsHash(fl);
 
         entryHeader.addChild('Signer', etu.privateToAddress(pk));
         entryHeader.addChild('EntryTablespaceName', this.tablespace);
@@ -90,7 +79,6 @@ class Record {
         let sig = codec.sign(hash, pk);
         entryHeader.addChild('Signature', sig);
 
-        let fl = this.getFieldList(fieldNames);
         entry.addChild(fl);
 
         return entry;
@@ -101,7 +89,7 @@ class Record {
             let type = types[f];
             if(!type)
                 throw new Error('No type for field ' + f);
-            this.putField(f, new Field(f, type, fields[f]));
+            this.putField(f, new Field(f, type, {value: fields[f]}));
         }
     }
 

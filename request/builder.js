@@ -17,7 +17,7 @@ class Builder {
     buildModification(pk, requestId) {
         let mr = new Tag('ModificationRequest');
         mr.addChild(new Tag({name: 'Consistency', value: this.consistency}));
-        mr.addChild(new Tag({name: 'RequestId', value: requestId}));
+        mr.addChild(new Tag({name: 'MessageId', value: requestId}));
 
         for(let record of this.records) {
             let entry = record.getEntry(pk);

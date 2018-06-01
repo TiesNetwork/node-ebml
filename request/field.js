@@ -3,6 +3,7 @@ const BN = require('bn.js');
 const BD = require('bigdecimal');
 const tools = require('../lib/ebml/tools');
 const codec = require('./codec');
+const uuidParse = require('uuid-parse');
 
 /*
 Boolean - логический тип. Может принимать 2 возможных значения: true или false.
@@ -23,6 +24,25 @@ Map - ассоциативный массив элементов с примит
 Structure - объект с фиксированным набором элементов. Доступ к элементам может производиться как в ассоциативном массиве по номеру или имени, если массив именованный.
  */
 
+function bigIntToBuffer(bi) {
+    let cnt = bi.bitLength();
+    let zerobits = (8 - cnt%8);
+    const signum = bi.signum();
+    if(signum < 0){
+        let big = BD.BigInteger.ZERO().setBit(cnt + zerobits);
+        bi = big.add(bi);
+    }
+
+    let hex = bi.toString(16);
+    if(signum > 0 && !(zerobits%8)) {
+        //We need to prepend number with 0 byte
+        hex = '00' + hex;
+    }
+    if(hex.length & 1)
+        hex = '0' + hex;
+
+    return Buffer.from(hex, 'hex');
+}
 
 function _encodeValue(type, value) {
     switch(type){
@@ -43,9 +63,12 @@ function _encodeValue(type, value) {
             buf.writeDoubleBE(value, 0);
             return buf;
         }
+        case 'duration':
         case 'decimal':
         {
-            let bd = new BD.BigDecimal(value);
+            let bd = value;
+            if(!(bd instanceof BD.BigDecimal))
+                bd = new BD.BigDecimal(value);
 
             let scale = bd.scale();
             if(scale >= 0)
@@ -55,10 +78,10 @@ function _encodeValue(type, value) {
 
             let unscaled = bd.unscaledValue();
             let scaleBuf = tools.writeVint(scale);
-            let unscaledBuf = unscaled.toByteArray();
+            let unscaledBuf = bigIntToBuffer(unscaled);
             let buf = Buffer.allocUnsafe(scaleBuf.length + unscaledBuf.length);
-            Buffer.copy(buf, 0, scaleBuf, 0, scaleBuf.length);
-            Buffer.copy(buf, scaleBuf.length, unscaledBuf, 0, unscaledBuf.length);
+            scaleBuf.copy(buf, 0, 0, scaleBuf.length);
+            unscaledBuf.copy(buf, scaleBuf.length, 0, unscaledBuf.length);
             return buf;
         }
         case 'string':
@@ -66,14 +89,12 @@ function _encodeValue(type, value) {
         case 'binary':
             return Buffer.isBuffer(value) ? value : Buffer.from(value);
         case 'time':
-            return encodeInteger(+value - tools.UNIX_EPOCH_DELAY);
-        case 'duration':
-            return encodeInteger(+value);
+            return tools.encodeInteger(+value - tools.UNIX_EPOCH_DELAY);
         case 'uuid':
             if(typeof(value) === 'string')
                 value = uuidParse.parse(value);
             if(!Buffer.isBuffer(value))
-                throw new Error('Value is not a Buffer!');
+                value = Buffer.from(value);
             return value;
         default:
             throw new Error('Type ' + type + ' is unknown or not yet supported');
@@ -91,6 +112,7 @@ function _decodeValue(type, buffer){
         case 'double':
             return tools.readFloat(buffer);
         case 'decimal':
+        case 'duration':
         {
             let scale = tools.readVint(buffer, 0);
             let sgn = scale.value & 1;
@@ -108,8 +130,6 @@ function _decodeValue(type, buffer){
             return buffer;
         case 'time':
             return new Date(tools.readSigned(buffer) + tools.UNIX_EPOCH_DELAY);
-        case 'duration':
-            return tools.readSigned(buffer);
         case 'uuid':
             return uuidParse.unparse(buffer);
         default:
@@ -159,7 +179,7 @@ class Field{
             return this.__hash;
         if(!this.__binaryValue)
             this.encodeValue();
-        this.__hash = createKeccakHash('keccac256').update(this.__binaryValue).digest();
+        this.__hash = createKeccakHash('keccak256').update(this.__binaryValue).digest();
         return this.__hash;
     }
 
@@ -204,6 +224,7 @@ class Field{
         }else{
             tag.addChild(new codec.Tag({name: 'FieldHash', data: this.getHash()}));
         }
+        return tag;
 
     }
 
