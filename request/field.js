@@ -44,6 +44,26 @@ function bigIntToBuffer(bi) {
     return Buffer.from(hex, 'hex');
 }
 
+function _writeBigDecimal(value){
+    let bd = value;
+    if(!(bd instanceof BD.BigDecimal))
+        bd = new BD.BigDecimal(value);
+
+    let scale = bd.scale();
+    if(scale >= 0)
+        scale *= 2;
+    else
+        scale = -scale*2 + 1;
+
+    let unscaled = bd.unscaledValue();
+    let scaleBuf = tools.writeVint(scale);
+    let unscaledBuf = bigIntToBuffer(unscaled);
+    let buf = Buffer.allocUnsafe(scaleBuf.length + unscaledBuf.length);
+    scaleBuf.copy(buf, 0, 0, scaleBuf.length);
+    unscaledBuf.copy(buf, scaleBuf.length, 0, unscaledBuf.length);
+    return buf;
+}
+
 function _encodeValue(type, value) {
     switch(type){
         case 'boolean':
@@ -52,38 +72,10 @@ function _encodeValue(type, value) {
         case 'long':
             return tools.encodeInteger(value);
         case 'float':
-        {
-            let buf = Buffer.allocUnsafe(4);
-            buf.writeFloatBE(value, 0);
-            return buf;
-        }
         case 'double':
-        {
-            let buf = Buffer.allocUnsafe(8);
-            buf.writeDoubleBE(value, 0);
-            return buf;
-        }
         case 'duration':
         case 'decimal':
-        {
-            let bd = value;
-            if(!(bd instanceof BD.BigDecimal))
-                bd = new BD.BigDecimal(value);
-
-            let scale = bd.scale();
-            if(scale >= 0)
-                scale *= 2;
-            else
-                scale = -scale*2 + 1;
-
-            let unscaled = bd.unscaledValue();
-            let scaleBuf = tools.writeVint(scale);
-            let unscaledBuf = bigIntToBuffer(unscaled);
-            let buf = Buffer.allocUnsafe(scaleBuf.length + unscaledBuf.length);
-            scaleBuf.copy(buf, 0, 0, scaleBuf.length);
-            unscaledBuf.copy(buf, scaleBuf.length, 0, unscaledBuf.length);
-            return buf;
-        }
+            return _writeBigDecimal(value);
         case 'string':
             return Buffer.from(value);
         case 'binary':
@@ -101,6 +93,18 @@ function _encodeValue(type, value) {
     }
 }
 
+function _readBigDecimal(buffer){
+    let scale = tools.readVint(buffer, 0);
+    let sgn = scale.value & 1;
+    let scale_val = (scale.value - sgn)/2;
+    if(sgn)
+        scale_val = -scale_val;
+
+    let bi = new BD.BigInteger(buffer.slice(scale.length));
+    let bd = new BD.BigDecimal(bi, scale_val);
+    return bd;
+}
+
 function _decodeValue(type, buffer){
     switch(type){
         case 'boolean':
@@ -109,20 +113,16 @@ function _decodeValue(type, buffer){
         case 'long':
             return tools.readSigned(buffer);
         case 'float':
+        {
+            let bd = _readBigDecimal(buffer);
+            return bd.floatValue();
+        }
         case 'double':
             return tools.readFloat(buffer);
         case 'decimal':
         case 'duration':
         {
-            let scale = tools.readVint(buffer, 0);
-            let sgn = scale.value & 1;
-            let scale_val = (scale.value - sgn)/2;
-            if(sgn)
-                scale_val = -scale_val;
-
-            let bi = new BD.BigInteger(buffer.slice(scale.length));
-            let bd = new BD.BigDecimal(bi, scale_val);
-            return bd;
+            return _readBigDecimal(buffer);
         }
         case 'string':
             return Buffer.toString();
