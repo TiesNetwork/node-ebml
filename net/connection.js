@@ -5,16 +5,24 @@ const Builder = require('../request/builder');
 class Connection {
 
     constructor(url){
-        let socket = new WebSocketClient();
-        socket.connect(url);
-        this.socket = socket;
+        this.socket = new WebSocketClient();;
         this.requestId = 0;
         this.requests = {};
+        this.connecting = false;
 
+        if(url)
+            this.connect(url);
+    }
+
+    connect(url) {
+        if(this.connecting)
+            throw new Error('Already connecting...');
+
+        this.connecting = true;
         const self = this;
 
         this.waitForConnection = new Promise(((resolve, reject) => {
-            socket.on('connect', (connection) => {
+            self.socket.on('connect', (connection) => {
                 self.connection = connection;
 
                 console.log('connected!');
@@ -23,14 +31,19 @@ class Connection {
                 connection.on('error', (error) => { console.log('Connection error: ' + error) });
                 connection.on('message', (data) => { console.log('Data: ' + JSON.stringify(data)) });
 
+                this.connecting = false;
                 resolve(connection);
             });
 
-            socket.on('connectFailed', (error) => {
+            self.socket.on('connectFailed', (error) => {
                 console.log('connect error: ' + error);
+                this.connecting = false;
                 reject(error);
             });
         }));
+
+        this.socket.connect(url);
+        return this.waitForConnection;
     }
 
     modify(records, pk) {

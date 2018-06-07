@@ -33,11 +33,11 @@ fs.readFile('myreq.proto', async function(err, data) {
     let record = new Record('client-dev.test', 'all_types');
     record.putFields({
         Id: uuidv4(),
-        fBinary: new Buffer(5),
-        fBoolean: true,
-        fDecimal: new bigdecimal.BigDecimal("-1"),
+        fBinary: new Buffer("e0a61e5ad74f", 'hex'),
+        fBoolean: false,
+        fDecimal: new bigdecimal.BigDecimal("-1.235e-8"),
         fDouble: 158.234e200,
-        fDuration: 1000,
+        fDuration: 20*86400,
         fFloat: -42803.234e-8,
         fInteger: 423424432,
         fLong: -278374928374,
@@ -48,8 +48,8 @@ fs.readFile('myreq.proto', async function(err, data) {
     //0xe0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e
     //0xAe65bAf610Bad3F0d71Aa3C3a8110c2d62cbEb19
 
-    let c = new Connection('ws://192.168.1.44:8080/websocket');
-    await c.waitForConnection;
+    let c = new Connection();
+    await c.connect('ws://192.168.1.44:8080/websocket');
 
     await c.modify([record], Buffer.from('e0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e', 'hex'));
 
