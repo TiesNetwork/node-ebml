@@ -1,6 +1,7 @@
-const io = require('socket.io-client');
 const WebSocketClient = require('websocket').client;
 const Builder = require('../request/builder');
+const codec = require('../request/codec');
+
 
 class Connection {
 
@@ -9,6 +10,7 @@ class Connection {
         this.requestId = 0;
         this.requests = {};
         this.connecting = false;
+        this.header = Buffer.from('C001BA5E1225EFFF0000000000000001', 'hex');
 
         if(url)
             this.connect(url);
@@ -29,7 +31,22 @@ class Connection {
 
                 connection.on('close', () => { console.log('closed!') });
                 connection.on('error', (error) => { console.log('Connection error: ' + error) });
-                connection.on('message', (data) => { console.log('Data: ' + JSON.stringify(data)) });
+                connection.on('message', (data) => {
+                    if(data.type != 'binary')
+                        throw new Error('Wrong message format from server: ' + data.type);
+                    console.log('Data: ' + data.binaryData.toString('hex'));
+                    let header = data.binaryData.slice(0, 16);
+                    if(Buffer.compare(header, this.header) != 0)
+                        throw new Error('Wrong message header from server: ' + header.toString('hex'));
+                    let body = data.binaryData.slice(16);
+                    let response = codec.decode(body);
+                    let requestId = response.getChild('MessageId').value;
+                    let func = this.requests[requestId];
+                    if(!func)
+                        throw new Error('Unknown response MessageId: ' + requestId);
+                    func(response);
+                    delete this.requests[requestId];
+                });
 
                 this.connecting = false;
                 resolve(connection);
@@ -54,7 +71,7 @@ class Connection {
         if(!this.connection || !this.connection.connected)
             throw new Error('Connection is not open!');
 
-        this.connection.sendBytes(Buffer.concat([Buffer.from('C001BA5E1225EFFF0000000000000001', 'hex'), data]));
+        this.connection.sendBytes(Buffer.concat([this.header, data]));
 
         return new Promise((resolve, reject) => {
             self.requests[self.requestId] = (response, error) => {

@@ -158,7 +158,8 @@ function checkEntry(entry, myAddress) {
         throw new Error('Entry signature check is failed! Sig: ' + header.getChild('Signature').data.toString('hex').substr(0, 20) + '...');
 
     checkFields(entry.getChild('FieldList'), header.getChild('EntryFldHash'));
-    checkCheques(entry, myAddress);
+    if(myAddress)
+        checkCheques(entry, myAddress);
 }
 
 function getSigner(obj) {

@@ -4,6 +4,40 @@ let _the_schema = {
         "type": "m",
         "description": ""
     },
+    "ModificationResponse": {
+        "tag": "1f544945",
+        "type": "m",
+        "description": ""
+    },
+    "ModificationResult": {
+        "context": ["ModificationResponse"],
+        "tag": "e1",
+        "type": "m",
+        "description": ""
+    },
+    "ModificationError": {
+        "context": ["ModificationResponse"],
+        "tag": "ef",
+        "type": "m",
+        "description": ""
+    },
+    "EntryHash": {
+        "context": ["ModificationResult", "ModificationError"],
+        "tag": "80",
+        "type": "b",
+        "description": ""
+    },
+    "Error": {
+        "tag": "7fff",
+        "type": "m",
+        "description": ""
+    },
+    "ErrorMessage": {
+        "context": ["Error", "ModificationError"],
+        "tag": "e0",
+        "type": "8",
+        "description": ""
+    },
     "Test": {
         "context": ["ModificationRequest"],
         "tag": "86",
@@ -17,7 +51,7 @@ let _the_schema = {
         "description": ""
     },
     "MessageId": {
-        "context": ["ModificationRequest"],
+        "context": ["ModificationRequest","ModificationResponse"],
         "tag": "ec",
         "type": "u",
         "description": "Request ID unique for a given connection"

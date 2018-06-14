@@ -51,7 +51,11 @@ fs.readFile('myreq.proto', async function(err, data) {
     let c = new Connection();
     await c.connect('ws://192.168.1.44:8080/websocket');
 
-    await c.modify([record], Buffer.from('e0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e', 'hex'));
+    let response = await c.modify([record], Buffer.from('e0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e', 'hex'));
+    response = await c.modify([record], Buffer.from('e0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e', 'hex'));
+
+    console.log(util.inspect(response, {showHidden: false, depth: null}));
+
 
     
 });
