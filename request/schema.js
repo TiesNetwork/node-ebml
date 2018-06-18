@@ -2,10 +2,44 @@ let _the_schema = {
     "ModificationRequest": {
         "tag": "1e544945",
         "type": "m",
-        "description": ""
+        "description": "INSERT/UPDATE query"
     },
     "ModificationResponse": {
         "tag": "1f544945",
+        "type": "m",
+        "description": "Response to ModificationRequest"
+    },
+    "RecollectionRequest": {
+        "tag": "11544945",
+        "type": "m",
+        "description": "SELECT query"
+    },
+    "RecollectionResponse": {
+        "tag": "12544945",
+        "type": "m",
+        "description": "Response to RecollectionRequest"
+    },
+    "RecollectionResult": {
+        "context": ["RecollectionResponse"],
+        "tag": "a1",
+        "type": "m",
+        "description": ""
+    },
+    "RecollectionEntry": {
+        "context": ["RecollectionResult"],
+        "tag": "e1",
+        "type": "m",
+        "description": ""
+    },
+    "RecollectionCompute": {
+        "context": ["RecollectionResult"],
+        "tag": "c1",
+        "type": "m",
+        "description": ""
+    },
+    "ComputeField": {
+        "context": ["RecollectionCompute"],
+        "tag": "c1",
         "type": "m",
         "description": ""
     },
@@ -21,6 +55,103 @@ let _the_schema = {
         "type": "m",
         "description": ""
     },
+    "RecollectionTablespaceName": {
+        "context": ["RecollectionRequest"],
+        "tag": "80",
+        "type": "8",
+        "description": ""
+    },
+    "RecollectionTableName": {
+        "context": ["RecollectionRequest"],
+        "tag": "82",
+        "type": "8",
+        "description": ""
+    },
+    "RetrieveList": {
+        "context": ["RecollectionRequest"],
+        "tag": "83",
+        "type": "m",
+        "description": ""
+    },
+    "RetField": {
+        "context": ["RetrieveList"],
+        "tag": "d0",
+        "type": "8",
+        "description": ""
+    },
+    "RetCompute": {
+        "context": ["RetrieveList"],
+        "tag": "c1",
+        "type": "m",
+        "description": ""
+    },
+    "RetComputeAlias": {
+        "context": ["RetCompute"],
+        "tag": "a0",
+        "type": "8",
+        "description": ""
+    },
+    "RetComputeType": {
+        "context": ["RetCompute"],
+        "tag": "a2",
+        "type": "s",
+        "description": ""
+    },
+    "FunctionName": {
+        "context": ["RetCompute", "FunArgumentFunction", "Filter"],
+        "tag": "f0",
+        "type": "8",
+        "description": ""
+    },
+    "FunArgumentFunction": {
+        "context": ["RetCompute", "FunArgumentFunction", "Filter"],
+        "tag": "f3",
+        "type": "m",
+        "description": ""
+    },
+    "FunArgumentReference": {
+        "context": ["RetCompute", "FunArgumentFunction", "Filter"],
+        "tag": "f2",
+        "type": "8",
+        "description": ""
+    },
+    "FunArgumentStatic": {
+        "context": ["RetCompute", "FunArgumentFunction", "Filter"],
+        "tag": "f1",
+        "type": "m",
+        "description": ""
+    },
+    "ArgStaticType": {
+        "context": ["FunArgumentStatic"],
+        "tag": "80",
+        "type": "s",
+        "description": ""
+    },
+    "ArgStaticValue": {
+        "context": ["FunArgumentStatic"],
+        "tag": "82",
+        "type": "b",
+        "description": ""
+    },
+    "FilterList": {
+        "context": ["RecollectionRequest"],
+        "tag": "a3",
+        "type": "m",
+        "description": ""
+    },
+    "Filter": {
+        "context": ["FilterList"],
+        "tag": "f1",
+        "type": "m",
+        "description": ""
+    },
+    "FilterField": {
+        "context": ["Filter"],
+        "tag": "e0",
+        "type": "8",
+        "description": ""
+    },
+
     "EntryHash": {
         "context": ["ModificationResult", "ModificationError"],
         "tag": "80",
@@ -45,13 +176,13 @@ let _the_schema = {
         "description": ""
     },
     "Consistency": {
-        "context": ["ModificationRequest"],
+        "context": ["ModificationRequest","RecollectionRequest"],
         "tag": "ee",
         "type": "u",
         "description": ""
     },
     "MessageId": {
-        "context": ["ModificationRequest","ModificationResponse"],
+        "context": ["ModificationRequest","ModificationResponse","RecollectionRequest","RecollectionResponse"],
         "tag": "ec",
         "type": "u",
         "description": "Request ID unique for a given connection"
@@ -75,7 +206,7 @@ let _the_schema = {
         "description": ""
     },
     "EntryHeader": {
-        "context": ["Entry"],
+        "context": ["Entry", "RecollectionEntry"],
         "tag": "e1",
         "type": "m",
         "description": ""
@@ -130,7 +261,7 @@ let _the_schema = {
     },
 
     "FieldList": {
-        "context": ["Entry"],
+        "context": ["Entry", "RecollectionEntry"],
         "tag": "d1",
         "type": "m",
         "description": ""
@@ -142,25 +273,25 @@ let _the_schema = {
         "description": ""
     },
     "FieldName": {
-        "context": ["Field"],
+        "context": ["Field", "ComputeField"],
         "tag": "80",
         "type": "8",
         "description": ""
     },
     "FieldType": {
-        "context": ["Field"],
+        "context": ["Field", "ComputeField"],
         "tag": "82",
         "type": "s",
         "description": ""
     },
     "FieldHash": {
-        "context": ["Field"],
+        "context": ["Field", "ComputeField"],
         "tag": "84",
         "type": "b",
         "description": ""
     },
     "FieldValue": {
-        "context": ["Field"],
+        "context": ["Field", "ComputeField"],
         "tag": "86",
         "type": "b",
         "description": ""
@@ -214,7 +345,8 @@ let _the_schema = {
         "tag": "a0",
         "type": "b",
         "description": ""
-    }
+    },
+
 };
 
 let Schema = require('../lib/ebml/schema');

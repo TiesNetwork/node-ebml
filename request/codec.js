@@ -52,6 +52,8 @@ class Tag {
             } else {
                 tag = new Tag(tag);
             }
+        }else if(!(tag instanceof Tag)){
+            throw new Error('Only Tag object can be child of Tag');
         }
 
         let item = this, item1 = tag;

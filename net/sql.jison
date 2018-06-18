@@ -10,12 +10,12 @@
 --.*                                             /* skip comments */
 \s+                                              /* skip whitespace */
 
-'SELECT'                                         return 'SELECT'
-'FROM'                                           return 'FROM'
-'WHERE'                                          return 'WHERE'
-'DISTINCT'                                       return 'DISTINCT'
+SELECT\b                                         return 'SELECT'
+FROM\b                                           return 'FROM'
+WHERE\b                                          return 'WHERE'
+DISTINCT\b                                       return 'DISTINCT'
 ORDER\s+BY\b                                     return 'ORDER_BY'
-'LIMIT'                                          return 'LIMIT'
+LIMIT\b                                          return 'LIMIT'
 ','                                              return 'COMMA'
 '::'                                             return 'TYPE_HINT'
 '*'                                              return 'STAR'
@@ -26,24 +26,25 @@ ORDER\s+BY\b                                     return 'ORDER_BY'
 '<'                                              return 'CMP_LESS'
 '('                                              return 'LPAREN'
 ')'                                              return 'RPAREN'
-'AS'                                             return 'AS'
-'CONTAINS'                                       return 'CONTAINS'
+AS\b                                             return 'AS'
+CONTAINS\b                                       return 'CONTAINS'
 CONTAINS\s+KEY\b                                 return 'CONTAINS_KEY'
-'IN'                                             return 'IN'
-'AND'                                            return 'AND'
-'ASC'                                            return 'ASC'
-'DESC'                                           return 'DESC'
-'CAST'                                           return 'CAST'
+IN\b                                             return 'IN'
+AND\b                                            return 'AND'
+ASC\b                                            return 'ASC'
+DESC\b                                           return 'DESC'
+CAST\b                                           return 'CAST'
 N?['](\\.|[^'])*[']                              return 'STRING'
 [\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}           return 'UUID'
-'NULL'                                           return 'NULL'
+NULL\b                                           return 'NULL'
 (true|false)\b                                   return 'BOOLEAN'
 -?[0-9]+\.[0-9]*(e-?[1-9]+)?                      return 'DECIMAL'
 [a-z_][a-z0-9_]*                           		 return 'DIRECT_IDENTIFIER'
 ["](""|[^"])*["]                     			 return 'QUOTED_IDENTIFIER'
+0x[0-9a-f]+						                 return 'HEX_INTEGER'
 [1-9]\d*									     return 'POSITIVE_INTEGER'
 -[1-9]\d*									     return 'NEGATIVE_INTEGER'
-0						                         return 'ZERO'
+0\b						                         return 'ZERO'
 '.'												 return 'DOT'
 <<EOF>>                							 return 'EOF'
 .                                                return 'INVALID'
@@ -71,7 +72,7 @@ selectClause
     : SELECT optDistinctClause selectExprList 
       FROM tableExpr
       optWhereClause optOrderByClause optLimitClause
-      { $$ = {nodeType: 'Select', distinct: $2, columns: $3, from: $5, where:$6, orderBy:$7, limit:$8}; }
+      { $$ = {nodeType: 'SELECT', distinct: $2, columns: $3, from: $5, where:$6, orderBy:$7, limit:$8}; }
     ;
 
 optDistinctClause
@@ -124,13 +125,21 @@ qualified_identifier
 	;
 
 selectExpr
-    : expressionUnary optColumnExprAlias { $$ = {nodeType: 'Column', value:$1, alias:$2}; }
+    : expressionUnaryOptTyped optColumnExprAlias { $$ = {nodeType: 'COLUMN', value:$1, alias:$2}; }
     ;
+
+expressionUnaryOptTyped
+    : expressionFunction
+    | castConstruct
+    | IDENTIFIER
+	| expressionFunction TYPE_HINT IDENTIFIER { $$ = $1; $1.type = $3 }
+    | castConstruct TYPE_HINT IDENTIFIER { $$ = $1; $1.type = $3 }
+	;
 
 optColumnExprAlias
     : { $$ = null; }
-    | IDENTIFIER { $$ = {value: $1 }; }
-    | AS IDENTIFIER { $$ = {value: $2, includeAs: 1}; }
+    | IDENTIFIER { $$ = $1 }
+    | AS IDENTIFIER { $$ = $2 }
     ;
 
 tableExpr
@@ -140,15 +149,22 @@ tableExpr
 
 expressionUnary
     : expressionFunction
-    | LPAREN expression RPAREN
-    | specialConstruct
+    | LPAREN expressionUnary RPAREN { $$ = $2 }
+    | castConstruct
     | IDENTIFIER
-    | literal
+    | literalTyped
     ;
 
+expressionUnaryWhere
+    : expressionFunction
+    | LPAREN expressionUnary RPAREN { $$ = $2 }
+    | literalTyped
+    ;
+ 
+
 expressionCompare
-	: IDENTIFIER compare expressionUnary { $$ = {'nodeType': 'OPERATOR_COMPARE', 'name': $2, 'left': $1, 'right': $3} }
-    | IDENTIFIER IN LPAREN expressionUnaryList RPAREN  { $$ = {nodeType: 'OPERATOR_IN', left:$1, right:$4}; }
+	: IDENTIFIER compare expressionUnaryWhere { $$ = {'nodeType': 'OPERATOR_COMPARE', 'name': $2, 'left': $1, 'right': $3} }
+    | IDENTIFIER IN LPAREN expressionUnaryWhereList RPAREN  { $$ = {nodeType: 'OPERATOR_IN', left:$1, right:$4}; }
 	;
 
 expressionFunction
@@ -158,6 +174,11 @@ expressionFunction
 expressionUnaryList
 	: expressionUnary { $$ = [$1] }
 	| expressionUnaryList COMMA expressionUnary  { $$ = $1; $1.push($3) }
+	;
+
+expressionUnaryWhereList
+	: expressionUnaryWhere { $$ = [$1] }
+	| expressionUnaryWhereList COMMA expressionUnaryWhere  { $$ = $1; $1.push($3) }
 	;
 
 expressionCompareList
@@ -175,20 +196,15 @@ compare
     | CMP_LESSOREQUAL
     ;
 
-specialConstruct
-    : CAST LPAREN expressionUnary AS dataType RPAREN { $$ = {nodeType: 'Cast', expression:$3, dataType:$5}; }
+castConstruct
+    : CAST LPAREN expressionUnary AS dataType RPAREN { $$ = {nodeType: 'CAST', expression:$3, dataType:$5}; }
     ;
 
 dataType
-    : IDENTIFIER optDataTypeLength { $$ = {name: $1, len: $2}; }
+    : IDENTIFIER { $$ = $1 }
     ;
 
-optDataTypeLength
-    : { $$ = null; }
-    | LPAREN NUMERIC RPAREN { $$ = $2; }
-    ;
-
-numeric
+numericValue
 	: integer { $$ = {nodeType: 'INTEGER', value: $1 } }
 	| DECIMAL { $$ = {nodeType: 'DECIMAL', value: $1 } }
 	;
@@ -197,11 +213,12 @@ integer
 	: ZERO
 	| POSITIVE_INTEGER
 	| NEGATIVE_INTEGER
+	| HEX_INTEGER
 	;
 
-literal
-    : stringLiteral 
-    | numeric
+literalValue
+    : stringValue 
+    | numericValue
     | BOOLEAN { $$ = {nodeType: 'BOOLEAN', value:$1}; }
     | NULL { $$ = {nodeType: 'NULL', value:null}; }
     | UUID { $$ = {nodeType: 'UUID', value:$1}; }
@@ -211,9 +228,9 @@ stringValue
 	: STRING { $$ = {nodeType: 'STRING', value:$1.replace(/^'|'$/g, '').replace(/\\(.)/g, '$1')}; }
 	;
 
-stringLiteral
-	: stringValue
-	| stringValue TYPE_HINT IDENTIFIER { $$ = $1; $1.type = $3; }
+literalTyped
+	: literalValue
+	| literalValue TYPE_HINT IDENTIFIER { $$ = $1; $1.type = $3; }
 	;
 
 

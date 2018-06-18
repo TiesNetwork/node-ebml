@@ -31,8 +31,9 @@ fs.readFile('myreq.proto', async function(err, data) {
     };
 
     let record = new Record('client-dev.test', 'all_types');
+    let uuid = uuidv4();
     record.putFields({
-        Id: uuidv4(),
+        Id: uuid,
         fBinary: new Buffer("e0a61e5ad74f", 'hex'),
         fBoolean: false,
         fDecimal: new bigdecimal.BigDecimal("-1.235e-8"),
@@ -52,10 +53,21 @@ fs.readFile('myreq.proto', async function(err, data) {
     await c.connect('ws://192.168.1.44:8080/websocket');
 
     let response = await c.modify([record], Buffer.from('e0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e', 'hex'));
-    response = await c.modify([record], Buffer.from('e0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e', 'hex'));
 
-    console.log(util.inspect(response, {showHidden: false, depth: null}));
+    let selresp = await c.retrieve(
+        `SELECT 
+            Id, 
+            CAST(bigIntAsBlob(toUnixTimestamp(writeTime(fTime))) AS blob) AS WriteTime, 
+            intAsBlob(0x309) AS TestValue 
+        FROM "client-dev.test"."all_types"
+        WHERE
+            Id IN (${uuid.toString()})`
+    );
 
+//    response = await c.modify([record], Buffer.from('e0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e', 'hex'));
 
+    console.log(util.inspect(selresp, {showHidden: false, depth: null}));
+
+    c.close();
     
 });

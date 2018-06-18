@@ -67,9 +67,13 @@ function _writeBigDecimal(value){
 function _encodeValue(type, value) {
     switch(type){
         case 'boolean':
-            return this.value ? Buffer.alloc(0) : Buffer.alloc(1, 1, 'binary');
+            return !this.value
+            || ['0', 'false'].indexOf(this.value.toString().toLowerCase()) >=0
+                ? Buffer.alloc(1, 0)
+                : Buffer.alloc(1, 1, 'binary');
         case 'integer':
         case 'long':
+        case 'bigint':
             return tools.encodeInteger(value);
         case 'float':
         case 'double':
@@ -77,6 +81,7 @@ function _encodeValue(type, value) {
         case 'decimal':
             return _writeBigDecimal(value);
         case 'string':
+        case 'ascii':
             return Buffer.from(value);
         case 'binary':
             return Buffer.isBuffer(value) ? value : Buffer.from(value);
@@ -111,6 +116,7 @@ function _decodeValue(type, buffer){
             return !!buffer[0];
         case 'integer':
         case 'long':
+        case 'bigint':
             return tools.readSigned(buffer);
         case 'float':
         {
@@ -125,6 +131,7 @@ function _decodeValue(type, buffer){
             return _readBigDecimal(buffer);
         }
         case 'string':
+        case 'ascii':
             return Buffer.toString();
         case 'binary':
             return buffer;
@@ -227,8 +234,9 @@ class Field{
         return tag;
 
     }
-
-
 }
+
+Field.encodeValue = _encodeValue;
+Field.decodeValue = _decodeValue;
 
 module.exports = Field;

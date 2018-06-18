@@ -1,7 +1,9 @@
 const WebSocketClient = require('websocket').client;
 const Builder = require('../request/builder');
 const codec = require('../request/codec');
-
+const sqlConverter = require('./sqlconverter');
+const Tag = codec.Tag;
+const C = require('../request/constants');
 
 class Connection {
 
@@ -11,6 +13,7 @@ class Connection {
         this.requests = {};
         this.connecting = false;
         this.header = Buffer.from('C001BA5E1225EFFF0000000000000001', 'hex');
+        this.consistency = C.Consistency.QUORUM;
 
         if(url)
             this.connect(url);
@@ -40,6 +43,11 @@ class Connection {
                         throw new Error('Wrong message header from server: ' + header.toString('hex'));
                     let body = data.binaryData.slice(16);
                     let response = codec.decode(body);
+                    if(response.name === 'Error'){
+                        let errs = response.getChildren('ErrorMessage');
+                        throw new Error(errs.map(e => e.value).join('\n'));
+                    }
+
                     let requestId = response.getChild('MessageId').value;
                     let func = this.requests[requestId];
                     if(!func)
@@ -63,10 +71,9 @@ class Connection {
         return this.waitForConnection;
     }
 
-    modify(records, pk) {
-        let builder = new Builder(records);
-        let data = builder.buildModification(pk, ++this.requestId);
+    __sendRequest(data) {
         let self = this;
+        const requestId = self.requestId;
 
         if(!this.connection || !this.connection.connected)
             throw new Error('Connection is not open!');
@@ -74,13 +81,52 @@ class Connection {
         this.connection.sendBytes(Buffer.concat([this.header, data]));
 
         return new Promise((resolve, reject) => {
-            self.requests[self.requestId] = (response, error) => {
+            self.requests[requestId] = (response, error) => {
                 if(response)
                     resolve(response);
                 else
                     reject(error);
             }
         });
+    }
+
+    modify(records, pk) {
+        let builder = new Builder(records);
+        let data = builder.buildModification(pk, ++this.requestId);
+       // console.log(data.toString('hex'));
+        return this.__sendRequest(data);
+    }
+
+    use(tablespace) {
+        this.tablespace = tablespace;
+    }
+
+    close(code, error) {
+        if(this.connecting)
+            throw new Error('Can not close connection while it is connecting');
+        if(this.connection) {
+            this.connection.close(code || 1000, error || "");
+            this.connection = null;
+        }
+    }
+
+    retrieve(request, pk) {
+        if(typeof request === 'string'){
+            let tagRequest = new Tag("RecollectionRequest");
+            //This is TQL select clause. Convert it to ebml
+            let ast = sqlConverter.compile(request);
+
+            tagRequest.addChild(new Tag({name: 'Consistency', value: this.consistency}));
+            tagRequest.addChild(new Tag({name: 'MessageId', value: ++this.requestId}));
+            sqlConverter.makeRequest(tagRequest, ast, this.tablespace);
+
+            request = tagRequest;
+        }
+
+        //TODO: sign retrieve request
+        let data = codec.encode(request);
+        console.log("Select: ", data.toString('hex'))
+        return this.__sendRequest(data);
     }
 
 }
