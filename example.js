@@ -57,7 +57,7 @@ fs.readFile('myreq.proto', async function(err, data) {
     let selresp = await c.retrieve(
         `SELECT 
             Id, 
-            CAST(bigIntAsBlob(toUnixTimestamp(writeTime(fTime))) AS blob) AS WriteTime, 
+            bigIntAsBlob(toUnixTimestamp(CAST(writeTime(fTime) AS date))) AS WriteTime, 
             intAsBlob(0x309) AS TestValue 
         FROM "client-dev.test"."all_types"
         WHERE

@@ -182,7 +182,7 @@ let _the_schema = {
         "description": ""
     },
     "MessageId": {
-        "context": ["ModificationRequest","ModificationResponse","RecollectionRequest","RecollectionResponse"],
+        "context": ["ModificationRequest","ModificationResponse","RecollectionRequest","RecollectionResponse","Error"],
         "tag": "ec",
         "type": "u",
         "description": "Request ID unique for a given connection"

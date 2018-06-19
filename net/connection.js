@@ -43,12 +43,16 @@ class Connection {
                         throw new Error('Wrong message header from server: ' + header.toString('hex'));
                     let body = data.binaryData.slice(16);
                     let response = codec.decode(body);
-                    if(response.name === 'Error'){
-                        let errs = response.getChildren('ErrorMessage');
-                        throw new Error(errs.map(e => e.value).join('\n'));
+                    let msgId = response.getChild('MessageId');
+                    if(!msgId) {
+                        if(response.name === 'Error'){
+                            let errs = response.getChildren('ErrorMessage');
+                            throw new Error(errs.map(e => e.value).join('\n'));
+                        }
+                        throw new Error('Invalid response without MessageId: ' + response.name);
                     }
 
-                    let requestId = response.getChild('MessageId').value;
+                    let requestId = msgId.value;
                     let func = this.requests[requestId];
                     if(!func)
                         throw new Error('Unknown response MessageId: ' + requestId);
