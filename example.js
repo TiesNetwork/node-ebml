@@ -54,7 +54,7 @@ fs.readFile('myreq.proto', async function(err, data) {
 
     let response = await c.modify([record], Buffer.from('e0a61e5ad74fc154927e8412c7f03528134f755e7eb45554eb7a99c2744ac34e', 'hex'));
 
-    let selresp = await c.retrieve(
+    let selresp = await c.recollect(
         `SELECT 
             Id, 
             bigIntAsBlob(toUnixTimestamp(CAST(writeTime(fTime) AS date))) AS WriteTime, 

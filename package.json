@@ -1,7 +1,7 @@
 {
-  "name": "ebml",
-  "version": "2.2.2",
-  "description": "ebml parser",
+  "name": "@tiesdb/ebml",
+  "version": "0.1.0",
+  "description": "universal ebml parser",
   "main": "index.js",
   "directories": {
     "test": "test"
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/themasch/node-ebml.git"
+    "url": "git://github.com/tiesnetwork/ebml.git"
   },
   "keywords": [
     "ebml",
@@ -22,15 +22,9 @@
     "format"
   ],
   "dependencies": {
-    "bigdecimal": "^0.6.1",
     "bn.js": "^4.11.8",
     "buffers": "^0.1.1",
-    "debug": "~3.1.0",
-    "ethereumjs-util": "^5.2.0",
-    "socket.io-client": "^2.1.1",
-    "uuid": "^3.2.1",
-    "uuid-parse": "^1.0.0",
-    "websocket": "^1.0.26"
+    "debug": "~3.1.0"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
@@ -43,18 +37,20 @@
     "mocha": "~5.1.0"
   },
   "contributors": [
+    "Mark Schmale <masch@masch.it>",
     "Chris Price <price.c@gmail.com>",
     "Davy Van Deursen <d.vandeursen@evs.com>",
     "Ed Markowski <siphon@protonmail.com>",
     "Manuel Wiedenmann <manuel@funkensturm.de>",
     "Mathias Buus <mathiasbuus@gmail.com>",
     "Max Ogden <max@maxogden.com>",
-    "Oliver Walzer <walzer@incuray.com>"
+    "Oliver Walzer <walzer@incuray.com>",
+    "Dmitry Kochin <k@tiesdb.com>"
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/themasch/node-ebml/issues"
+    "url": "https://github.com/tiesnetwork/ebml/issues"
   },
-  "homepage": "https://github.com/themasch/node-ebml#readme",
-  "author": "Mark Schmale <masch@masch.it>"
+  "homepage": "https://github.com/tiesnetwork/ebml#readme",
+  "author": "Dmitry Kochin <k@tiesdb.com>"
 }
