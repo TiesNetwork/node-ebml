@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/tiesnetwork/ebml.git"
+    "url": "git://github.com/tiesnetwork/universal-ebml.git"
   },
   "keywords": [
     "ebml",
@@ -49,8 +49,8 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tiesnetwork/ebml/issues"
+    "url": "https://github.com/tiesnetwork/universal-ebml/issues"
   },
-  "homepage": "https://github.com/tiesnetwork/ebml#readme",
+  "homepage": "https://github.com/tiesnetwork/universal-ebml#readme",
   "author": "Dmitry Kochin <k@tiesdb.com>"
 }
