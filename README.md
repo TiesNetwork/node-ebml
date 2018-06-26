@@ -4,7 +4,9 @@
 
 [EBML](http://ebml.sourceforge.net/) stands for Extensible Binary Meta-Language
 and is somewhat of a binary version of XML.
-It's used for container formats like webm or [mkv](http://www.matroska.org/technical/specs/index.html). 
+It's used for container formats like webm or [mkv](http://www.matroska.org/technical/specs/index.html).
+
+This fork supports universal schema - you can create your own document structure specific to your project.
 
 # install
 
