@@ -1,5 +1,5 @@
 {
-  "name": "@tiesdb/ebml",
+  "name": "universal-ebml",
   "version": "0.1.0",
   "description": "universal ebml parser",
   "main": "index.js",
