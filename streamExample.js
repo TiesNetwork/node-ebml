@@ -1,7 +1,8 @@
 var ebml = require('./index.js');
-var ebmlDecoder = new ebml.Decoder();
+const schema = require('./test/mkv_schema'); //Matroska schema for tests
+var ebmlDecoder = new ebml.Decoder(null, schema);
 var counts = {};
-require('fs').createReadStream('media/test.webm').
+require('fs').createReadStream('test/media/test.webm').
     pipe(ebmlDecoder).
     on('data', function(chunk) {
     var name = chunk[1].name;
