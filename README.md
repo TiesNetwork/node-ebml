@@ -1,6 +1,4 @@
-# EBML [![Build Status](https://travis-ci.org/themasch/node-ebml.png?branch=master)](https://travis-ci.org/themasch/node-ebml) [![NPM](https://nodei.co/npm/ebml.png?compact=true)](https://www.npmjs.com/package/ebml)
-
-[![Greenkeeper badge](https://badges.greenkeeper.io/themasch/node-ebml.svg)](https://greenkeeper.io/)
+# EBML [![NPM](https://nodei.co/npm/universal-ebml.png?compact=true)](https://www.npmjs.com/package/universal-ebml)
 
 [EBML](http://ebml.sourceforge.net/) stands for Extensible Binary Meta-Language
 and is somewhat of a binary version of XML.
