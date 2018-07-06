@@ -11,12 +11,12 @@ This fork supports universal schema - you can create your own document structure
 # install
 
 ```
-npm install ebml --save
+npm install universal-ebml --save
 ```
 
 # usage
 
-The `Decoder()` class is implemented as a [Node Transform stream](https://nodejs.org/api/stream.html#stream_class_stream_transform). As input it takes ebml. As output it emits a sequence of chunks: two-element arrays looking like this example.
+The `Decoder(options, schema)` class is implemented as a [Node Transform stream](https://nodejs.org/api/stream.html#stream_class_stream_transform). As input it takes ebml. As output it emits a sequence of chunks: two-element arrays looking like this example.
 
 ```
 [ "tag",
@@ -47,29 +47,23 @@ The second element of the array is an object with these members, among others:
 Integers stored in 6 bytes or less are represented as numbers, and longer integers are represented as hexadecimal text strings.
 * `data` is the binary data of the entire element stored in a [`Uint8Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array).
 
-Elements with the [`Block`](https://www.matroska.org/technical/specs/index.html#block_structure) and  [`SimpleBlock`](https://www.matroska.org/technical/specs/index.html#simpleblock_structure) types get special treatment. They have these
-additional members:
-
-* `payload` is the coded information in the element, stored in a  [`Uint8Array`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array).
-* `track` is an unsigned integer indicating the payload's track.
-* `keyframe` is a Boolean value set to true if the payload starts an I frame (`SimpleBlocks` only).
-* `discardable` is a Boolean value showing the value of the element's Discardable flag. (`SimpleBlocks` only).
-
-And, the `value` member shows the block's Timecode value.
-
 # examples
 
 This example reads a media file into memory and decodes it. The `decoder`
 invokes its `data` event for each Element.
 
+See more comprehensive example with custom schema at https://github.com/TiesNetwork/universal-ebml/blob/master/example.js .
+
 ```js
 const ebml = require('./index.js');
 const fs = require('fs');
-const decoder = new ebml.Decoder();
+const schema = require('./test/mkv_schema'); //Matroska schema for tests
+
+const decoder = new ebml.Decoder(null, schema);
 decoder.on('data', function(chunk) {
     console.log(chunk);
 });
-fs.readFile('media/test.webm', function(err, data) {
+fs.readFile('test/media/test.webm', function(err, data) {
     if (err)
         throw err;
     decoder.write(data);
@@ -80,9 +74,10 @@ This example does the same thing, but by piping the file stream into the decoder
 
 ```js
 const ebml = require('./index.js');
-const ebmlDecoder = new ebml.Decoder();
+const ebmlDecoder = new ebml.Decoder(null, schema);
+const schema = require('./test/mkv_schema'); //Matroska schema for tests
 const counts = {};
-require('fs').createReadStream('media/test.webm')
+require('fs').createReadStream('test/media/test.webm')
     .pipe(ebmlDecoder)
     .on('data', chunk => {
         console.log (chunk);
@@ -93,15 +88,11 @@ require('fs').createReadStream('media/test.webm')
     .on('finish', () => {
         console.log(counts);
     });
-```
+``` 
 
 # state of this project
 
-Parsing should work. If it doesn't, please create [an issue](https://github.com/themasch/node-ebml/issues/new).
-
-`d`-type elements (timestamps) are not yet decoded to Javascript timestamp values.
-
-Thanks to @chrisprice we got an encoder!
+Parsing works, encoder works, user defined schema works. If anything doesn't, please create [an issue](https://github.com/themasch/node-ebml/issues/new).
 
 # license
 
