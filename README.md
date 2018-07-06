@@ -34,8 +34,8 @@ The second element of the array is an object with these members, among others:
 
 * `name` is the [Matroska](https://matroska.org/technical/specs/index.html) Element Name. 
 * `type` is the data type.
-  * `u`: unsigned integer. Some of these are UIDs, coded as 128-bit numbers.
-  * `i`: signed integer.
+  * `u`: unsigned integer. Some of these are UIDs, coded as 128-bit numbers. Big values may be returned as an object of BigNum ([bn.js](https://www.npmjs.com/package/bn.js))
+  * `i`: signed integer. Big values may be returned as an object of BigNum ([bn.js](https://www.npmjs.com/package/bn.js))
   * `f`: IEEE-754 floating point number.
   * `s`: printable ASCII text string.
   * `8`: printable utf-8 Unicode text string.
