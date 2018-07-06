@@ -1,37 +1,37 @@
-const EBML = require('./index.js');
+const EBML = require('./index.js'); //You will use require('universal-ebml')
 const util = require('util');
 
 //Define document schema
 let _the_schema = {
-	"RootTag": {
+    "RootTag": {
         "tag": "1e544945", //Hex tags should be lowercase only
-		"type": "m",
+        "type": "m",
         "description": "Root tag"
-	},
-	"SubTag": {
+    },
+    "SubTag": {
         "context": ["RootTag"], //The tag can be only a direct child of RootTag
         "tag": "80",
-		"type": "m",
+        "type": "m",
         "description": "Sub tag"
-	},
-	"StringVal": {
+    },
+    "StringVal": {
         "context": ["SubTag", "ValueList"], //The tag can be only a direct child of SubTag or StringList
         "tag": "80", //The tags can duplicate as long as they can be differentiated by parent contexts
-		"type": "8",
+        "type": "8",
         "description": "Utf8 string"
-	},
-	"ValueList": {
+    },
+    "ValueList": {
         "context": ["SubTag"], //The tag can be only a direct child of SubTag
         "tag": "81",
         "type": "m",
         "description": "String list"
-	},
-	"IntVal": {
+    },
+    "IntVal": {
         "context": ["^SubTag"], //The tag can be only a direct or indirect child of SubTag
         "tag": "a0",
-		"type": "i",
+        "type": "i",
         "description": "Int value"
-	},
+    },
     "UIntVal": {
         "context": ["^SubTag"], //The tag can be only a direct or indirect child of SubTag
         "tag": "a2",

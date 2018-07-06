@@ -1,10 +1,11 @@
 var ebml = require('../lib/ebml/index.js'),
+    mkv_schema = require('./mkv_schema'),
     assert = require('assert');
 
 describe('embl', function() {
     describe('Encoder', function() {
         function createEncoder(expected, done) {
-            var encoder = new ebml.Encoder();
+            var encoder = new ebml.Encoder(null, mkv_schema);
             encoder.on('data', function(chunk) {
                 assert.equal(chunk.toString('hex'), new Buffer(expected).toString('hex'));
                 done();

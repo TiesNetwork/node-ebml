@@ -1,5 +1,6 @@
 var ebml = require('../lib/ebml/index.js'),
-    assert = require('assert');
+    assert = require('assert'),
+    mkv_schema = require('./mkv_schema');
 
 var STATE_TAG = 1,
     STATE_SIZE = 2,
@@ -8,7 +9,7 @@ var STATE_TAG = 1,
 describe('embl', function() {
     describe('Decoder', function() {
         it('should wait for more data if a tag is longer than the buffer', function() {
-            var decoder = new ebml.Decoder();
+            var decoder = new ebml.Decoder(null, mkv_schema);
             decoder.write(new Buffer([0x1A, 0x45]));
 
             assert.equal(STATE_TAG, decoder._state);
@@ -17,7 +18,7 @@ describe('embl', function() {
         });
 
         it('should clear the buffer after a full tag is written in one chunk', function() {
-            var decoder = new ebml.Decoder();
+            var decoder = new ebml.Decoder(null, mkv_schema);
             decoder.write(new Buffer([0x42, 0x86, 0x81, 0x01]));
 
             assert.equal(STATE_TAG, decoder._state);
@@ -26,7 +27,7 @@ describe('embl', function() {
         });
 
         it('should clear the buffer after a full tag is written in multiple chunks', function() {
-            var decoder = new ebml.Decoder();
+            var decoder = new ebml.Decoder(null, mkv_schema);
 
             decoder.write(new Buffer([0x42, 0x86]));
             decoder.write(new Buffer([0x81, 0x01]));
@@ -37,7 +38,7 @@ describe('embl', function() {
         });
 
         it('should increment the cursor on each step', function() {
-            var decoder = new ebml.Decoder();
+            var decoder = new ebml.Decoder(null, mkv_schema);
 
             decoder.write(new Buffer([0x42])); // 4
 
@@ -65,7 +66,7 @@ describe('embl', function() {
         });
 
         it('should emit correct tag events for simple data', function(done) {
-            var decoder = new ebml.Decoder();
+            var decoder = new ebml.Decoder(null, mkv_schema);
             decoder.on('data', function(data) {
                 var state = data[0];
                 data = data[1];
@@ -81,7 +82,7 @@ describe('embl', function() {
         });
 
         it('should emit correct EBML tag events for master tags', function(done) {
-            var decoder = new ebml.Decoder();
+            var decoder = new ebml.Decoder(null, mkv_schema);
 
             decoder.on('data', function(data) {
                 var state = data[0];
@@ -99,7 +100,7 @@ describe('embl', function() {
         });
 
         it('should emit correct EBML:end events for master tags', function(done) {
-            var decoder = new ebml.Decoder();
+            var decoder = new ebml.Decoder(null, mkv_schema);
             var tags = 0;
             decoder.on('data', function(data) {
                 var state = data[0];
